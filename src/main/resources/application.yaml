@@ -1,0 +1,7 @@
+bot:
+  token: ~
+  subscribe:
+    #guild-id: ~
+  server-url: ~
+  clientId: ~
+  clientSecret: ~
