@@ -10,10 +10,8 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -28,30 +26,11 @@ public class DiscordAPIListener {
     private final Main main;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final OkHttpClient client = new OkHttpClient().newBuilder().build();
-    private static final String ERROR_HTML;
-    private static final String VERIFY_HTML;
 
     private static final String AVATAR_URL_FORMAT = "https://cdn.discordapp.com/avatars/%s/%s.png";
 
-    static {
-        val error_is = Main.class.getResourceAsStream("../../../../error.html");
-        val verify_is = Main.class.getResourceAsStream("../../../../verify.html");
-        if (verify_is == null) {
-            throw new RuntimeException("verify_is is null");
-        }
-        if (error_is == null) {
-            throw new RuntimeException("error_is is null");
-        }
-        try {
-            ERROR_HTML = new String(error_is.readAllBytes());
-            VERIFY_HTML = new String(verify_is.readAllBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @GetMapping("/")
-    public ResponseEntity<String> getCode(@RequestParam(value = "code", required = false) String code) throws IOException {
+    public RedirectView getCode(@RequestParam(value = "code", required = false) String code) throws IOException {
         MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
         val config = main.getConfig();
         val formatted = "grant_type=authorization_code&code=%s&client_id=%s&client_secret=%s&redirect_uri=%s"
@@ -69,7 +48,7 @@ public class DiscordAPIListener {
             if (response.code() == HTTP_OK) {
                 val responseBody = response.body();
                 if (responseBody == null) {
-                    return error("unable to read");
+                    return  new RedirectView("/error.html");
                 }
                 val res = GSON.fromJson(responseBody.string(), Map.class);
                 val accessToken = res.get("access_token");
@@ -81,25 +60,17 @@ public class DiscordAPIListener {
                     if (response1.code() == HTTP_OK) {
                         val responseBody1 = response1.body();
                         if (responseBody1 == null) {
-                            return error("unable to read");
+                            return  new RedirectView("/error.html");
                         }
 
                         //noinspection unchecked
                         sendMessage(GSON.fromJson(responseBody1.string(), HashMap.class));
-                        return ResponseEntity.ok()
-                                .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                                .body(VERIFY_HTML);
+                        return new RedirectView("/verify.html");
                     }
                 }
             }
-            return error(String.valueOf(response.code()));
+            return  new RedirectView("/error.html");
         }
-    }
-
-    private static ResponseEntity<String> error(String code) {
-        return ResponseEntity.ok()
-                .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                .body(ERROR_HTML.formatted(code));
     }
 
     private void sendMessage(Map<String, Object> user) {

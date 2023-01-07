@@ -29,7 +29,10 @@ public class Main extends ListenerAdapter implements CommandLineRunner {
     public Main(Config config) {
         this.config = config;
         redirectURL = URLEncoder.encode(config.getServerUrl(), StandardCharsets.UTF_8);
-        BUTTON_URL = "https://discord.com/api/oauth2/authorize?client_id=" + config.getClientId() + "&redirect_uri=" + redirectURL + "&response_type=code&scope=identify%20email";
+        BUTTON_URL = String.format(
+            "https://discord.com/api/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=identify%%20email",
+            config.getClientId(), redirectURL
+        );
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
